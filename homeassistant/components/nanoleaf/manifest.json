@@ -1,4 +1,4 @@
-#Assumes https://github.com/milanmeu/aionanoleaf/pull/12 is accepted and version is bumped  
+"""Assumes https://github.com/milanmeu/aionanoleaf/pull/12 is accepted and version is bumped"""
 {
   "domain": "nanoleaf",
   "name": "Nanoleaf",
