@@ -130,3 +130,24 @@ class NanoleafLight(NanoleafEntity, LightEntity):
         """Instruct the light to turn off."""
         transition: float | None = kwargs.get(ATTR_TRANSITION)
         await self._nanoleaf.turn_off(None if transition is None else int(transition))
+
+class PanelLight(CoordinatorEntity, LightEntity):
+    _attr_has_entity_name = True
+
+    def __init__(self, nl, twin, pid, config_entry):
+        super().__init__(nl.coordinator)
+        self._nl, self._twin, self._pid = nl, twin, pid
+        self._attr_unique_id = f\"{config_entry.unique_id}_{pid}\"
+
+    @property
+    def is_on(self) -> bool:
+        return self._twin.colors[self._pid] != (0, 0, 0)
+
+    async def async_turn_on(self, **kw):
+        rgb = color_util.color_hs_to_RGB(*kw.get(\"hs_color\", (0, 0)))
+        await self._twin.set_color(self._pid, rgb)
+        await self._twin.sync()
+
+    async def async_turn_off(self, **kw):
+        await self._twin.set_color(self._pid, (0, 0, 0))
+        await self._twin.sync()
