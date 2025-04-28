@@ -26,7 +26,7 @@ _LOGGER = logging.getLogger(__name__)
 class NanoleafPanelCoordinator(DataUpdateCoordinator[Dict[int, Tuple[int, int, int]]]):
     """Coordinator that keeps current per‑panel colours cached."""
 
-    def __init__(self, hass: HomeAssistant, twin: DigitalTwin, config_entry=None):
+    def __init__(self, hass: HomeAssistant, twin: DigitalTwin, config_entry: ConfigEntry | None = None):
         """Initialize the coordinator with the provided twin."""
         self._twin = twin
         self._nanoleaf: Nanoleaf = twin._nl
@@ -37,7 +37,7 @@ class NanoleafPanelCoordinator(DataUpdateCoordinator[Dict[int, Tuple[int, int, i
             hass,
             _LOGGER,
             name="Nanoleaf panel coordinator",
-            update_interval=None,  # Push-based model, no polling
+            update_interval=timedelta(seconds=15),  # Periodic updates to detect panel changes
         )
         
     def _create_device_info(self) -> dict[str, Any]:

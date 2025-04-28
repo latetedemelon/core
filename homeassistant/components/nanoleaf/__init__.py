@@ -119,9 +119,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     # Also store key data by serial number for panel discovery
     hass.data.setdefault(DOMAIN, {})[nl.serial_no] = hass.data[DOMAIN][entry.entry_id]
-    
-    # Also store key data by serial number for panel discovery
-    hass.data.setdefault(DOMAIN, {})[nl.serial_no] = hass.data[DOMAIN][entry.entry_id]
 
     # Determine which platforms to set up
     platforms_to_setup = ["button", "event"]  # Always set up these platforms

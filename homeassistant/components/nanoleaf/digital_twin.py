@@ -90,10 +90,6 @@ class DigitalTwin:
         }
         try:
             await self._nl.write_effect(payload)
-            # Check if panel layout has changed (new panels added)
-            panel_count_before = len(self._panel_ids)
-            layout_changed = await self.refresh_layout()
-            return layout_changed
         except aiohttp.ClientError as err:
             raise HomeAssistantError(f"Failed to write effect to Nanoleaf: {err}") from err
  
