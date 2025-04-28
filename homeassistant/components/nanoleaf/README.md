@@ -32,7 +32,7 @@ After setup, you can configure the following options:
 
 ## Gesture Events
 
-Models with touch capability (Canvas, Shapes) support touch gestures that can trigger automations. 
+Models with touch capability (Canvas, Shapes) support touch gestures that can trigger automations.
 The following gestures are supported:
 
 - `swipe_up`

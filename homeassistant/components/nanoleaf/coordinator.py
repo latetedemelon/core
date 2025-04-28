@@ -15,10 +15,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import ATTR_MODEL, ATTR_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, SCAN_INTERVAL
+from .const import DOMAIN
 from .digital_twin import DigitalTwin
 
 _LOGGER = logging.getLogger(__name__)
@@ -26,17 +26,18 @@ _LOGGER = logging.getLogger(__name__)
 class NanoleafPanelCoordinator(DataUpdateCoordinator[Dict[int, Tuple[int, int, int]]]):
     """Coordinator that keeps current per‑panel colours cached."""
 
-    def __init__(self, hass: HomeAssistant, twin: DigitalTwin):
+    def __init__(self, hass: HomeAssistant, twin: DigitalTwin, config_entry=None):
         """Initialize the coordinator with the provided twin."""
         self._twin = twin
         self._nanoleaf: Nanoleaf = twin._nl
         self.device_info = self._create_device_info()
+        self.config_entry = config_entry
         
         super().__init__(
             hass,
             _LOGGER,
             name="Nanoleaf panel coordinator",
-            update_interval=timedelta(seconds=SCAN_INTERVAL),
+            update_interval=None,  # Push-based model, no polling
         )
         
     def _create_device_info(self) -> dict[str, Any]:
@@ -63,9 +64,11 @@ class NanoleafPanelCoordinator(DataUpdateCoordinator[Dict[int, Tuple[int, int, i
         # If new panels were discovered, trigger entity creation
         if layout_changed and len(self._twin.colors) > panel_count_before:
             _LOGGER.info("Panel layout changed: %d panels now available", len(self._twin.colors))
-            # Let the light platform know about this change
-            discover_panels = self.hass.data[DOMAIN].get(self._nanoleaf.serial_no, {}).get("discover_panels")
-            if discover_panels:
-                await discover_panels()
+            # Use dispatcher to notify light platform about new panels
+            async_dispatcher_send(
+                self.hass,
+                f"nanoleaf_new_panels_{self._nanoleaf.serial_no}",
+                self._twin.colors.keys(),
+            )
         
         return self._twin.colors.copy()

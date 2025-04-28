@@ -6,6 +6,8 @@ from __future__ import annotations
 import logging
 from typing import Dict, Tuple, Set
 
+import aiohttp
+
 from homeassistant.exceptions import HomeAssistantError
 
 _LOGGER = logging.getLogger(__name__)
@@ -74,7 +76,7 @@ class DigitalTwin:
     async def sync(self, transition_ms: int = 100):
         """Push current shadow to the controller as a static scene.
         
-        Returns True if the panel layout changed (panels added/removed).
+        The coordinator will handle checking for layout changes.
         """
         ids_ordered = sorted(self.colors)
         anim = self._build_anim(ids_ordered, self.colors, transition_ms // 10)
@@ -92,6 +94,6 @@ class DigitalTwin:
             panel_count_before = len(self._panel_ids)
             layout_changed = await self.refresh_layout()
             return layout_changed
-        except Exception as err:
+        except aiohttp.ClientError as err:
             raise HomeAssistantError(f"Failed to write effect to Nanoleaf: {err}") from err
  

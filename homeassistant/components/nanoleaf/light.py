@@ -16,10 +16,10 @@ from homeassistant.components.light import (
     LightEntityFeature,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import ATTR_SUPPORTED_FEATURES
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.util import color as color_util
 from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.exceptions import HomeAssistantError, ConfigEntryNotReady
@@ -242,26 +242,6 @@ async def async_setup_entry(hass, entry, async_add_entities):
     # Track previously registered panel IDs to detect new panels
     registered_panel_ids = set()
     
-    # Function to discover and add new panel entities
-    async def discover_panels():
-        """Discover and add new panel entities."""
-        if not expose_panels:
-            return
-            
-        new_panels = []
-        # Find panel IDs that haven't been registered yet
-        for pid in coordinator.data:
-            if pid != 0 and pid not in registered_panel_ids:  # Filter out PSU
-                new_panels.append(PanelLight(coordinator, twin, pid, entry.entry_id))
-                registered_panel_ids.add(pid)
-                
-        if new_panels:
-            _LOGGER.debug("Adding %d new panel lights", len(new_panels))
-            async_add_entities(new_panels)
-    
-    # Store discovery function in hass.data for use by digital twin
-    data["discover_panels"] = discover_panels
-    
     # Add individual panel lights if enabled in options
     if expose_panels:
         _LOGGER.debug("Setting up %d individual panel lights", len(coordinator.data))
@@ -273,6 +253,31 @@ async def async_setup_entry(hass, entry, async_add_entities):
         # Record registered panel IDs
         registered_panel_ids.update(pid for pid in coordinator.data if pid != 0)
         entities.extend(panel_entities)
+        
+        # Register listener for new panels discovered by coordinator
+        @callback
+        def async_add_new_panels(panel_ids):
+            """Add new panel entities when they are discovered."""
+            new_panels = []
+            
+            # Find panel IDs that haven't been registered yet
+            for pid in panel_ids:
+                if pid != 0 and pid not in registered_panel_ids:  # Filter out PSU
+                    new_panels.append(PanelLight(coordinator, twin, pid, entry.entry_id))
+                    registered_panel_ids.add(pid)
+                    
+            if new_panels:
+                _LOGGER.debug("Adding %d new panel lights", len(new_panels))
+                async_add_entities(new_panels)
+                
+        # Listen for new panels signal
+        entry.async_on_unload(
+            async_dispatcher_connect(
+                hass,
+                f"nanoleaf_new_panels_{nanoleaf.serial_no}",
+                async_add_new_panels
+            )
+        )
     
     # Add all entities
     async_add_entities(entities)
