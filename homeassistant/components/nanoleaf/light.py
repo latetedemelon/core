@@ -169,7 +169,7 @@ class PanelLight(CoordinatorEntity[NanoleafPanelCoordinator], LightEntity):
             "model": f"{self._nanoleaf.model} Panel",
             "via_device": (DOMAIN, self._nanoleaf.serial_no),
         }
-        self._attr_unique_id = f"{unique_prefix}_{panel_id}"
+        self._attr_unique_id = f"{self._nanoleaf.serial_no}_{panel_id}"
         self._attr_name = f"Panel {panel_id}"
 
     @property
@@ -239,6 +239,29 @@ async def async_setup_entry(hass, entry, async_add_entities):
     # Create entities list starting with the main light
     entities = [NanoleafLight(hass, entry, nanoleaf)]
     
+    # Track previously registered panel IDs to detect new panels
+    registered_panel_ids = set()
+    
+    # Function to discover and add new panel entities
+    async def discover_panels():
+        """Discover and add new panel entities."""
+        if not expose_panels:
+            return
+            
+        new_panels = []
+        # Find panel IDs that haven't been registered yet
+        for pid in coordinator.data:
+            if pid != 0 and pid not in registered_panel_ids:  # Filter out PSU
+                new_panels.append(PanelLight(coordinator, twin, pid, entry.entry_id))
+                registered_panel_ids.add(pid)
+                
+        if new_panels:
+            _LOGGER.debug("Adding %d new panel lights", len(new_panels))
+            async_add_entities(new_panels)
+    
+    # Store discovery function in hass.data for use by digital twin
+    data["discover_panels"] = discover_panels
+    
     # Add individual panel lights if enabled in options
     if expose_panels:
         _LOGGER.debug("Setting up %d individual panel lights", len(coordinator.data))
@@ -247,6 +270,8 @@ async def async_setup_entry(hass, entry, async_add_entities):
             for pid in coordinator.data
             if pid != 0  # Filter out PSU
         ]
+        # Record registered panel IDs
+        registered_panel_ids.update(pid for pid in coordinator.data if pid != 0)
         entities.extend(panel_entities)
     
     # Add all entities

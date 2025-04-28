@@ -53,5 +53,19 @@ class NanoleafPanelCoordinator(DataUpdateCoordinator[Dict[int, Tuple[int, int, i
         """Return the most recently *sent* colours.
         Nanoleaf REST API cannot query per‑panel colour when an animation is
         running, so we rely on the DigitalTwin shadow.
+        
+        Also checks if the panel layout has changed and triggers discovery of new panels.
         """
+        # If necessary, refresh layout to discover new panels
+        panel_count_before = len(self._twin.colors)
+        layout_changed = await self._twin.refresh_layout()
+        
+        # If new panels were discovered, trigger entity creation
+        if layout_changed and len(self._twin.colors) > panel_count_before:
+            _LOGGER.info("Panel layout changed: %d panels now available", len(self._twin.colors))
+            # Let the light platform know about this change
+            discover_panels = self.hass.data[DOMAIN].get(self._nanoleaf.serial_no, {}).get("discover_panels")
+            if discover_panels:
+                await discover_panels()
+        
         return self._twin.colors.copy()

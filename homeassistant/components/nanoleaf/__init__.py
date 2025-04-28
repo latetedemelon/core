@@ -1,11 +1,17 @@
-"""Home Assistant Nanoleaf integration – extended to expose individual panels."""
+"""Home Assistant Nanoleaf integration – extended     # Set up touch gesture events if supported
+    if supports_touch := nl.model in TOUCH_MODELS:
+        device_registry = dr.async_get(hass)
+        device_entry = device_registry.async_get_or_create(
+            config_entry_id=entry.entry_id,
+            identifiers={(DOMAIN, nl.serial_no)},
+        )e individual panels."""
 from __future__ import annotations
 
 import asyncio
 from contextlib import suppress
 import logging
 
-from aionanoleaf import EffectsEvent, Nanoleaf, StateEvent, TouchEvent  # local import to keep requirements optional
+from aionanoleaf import EffectsEvent, Nanoleaf, StateEvent, TouchEvent
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_DEVICE_ID, CONF_TYPE
@@ -13,7 +19,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.dispatcher import async_dispatcher_send
-from homeassistant.helpers.entity_platform import async_get_current_platform
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
     CONF_EXPOSE_PANELS,
@@ -32,9 +38,6 @@ _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = ["light", "event", "button"]
 
-
-
-
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Nanoleaf from a config entry."""
     session = async_get_clientsession(hass)
@@ -52,8 +55,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         coordinator.async_set_updated_data(coordinator.data)
     
     # Set up touch gesture events if supported
-    supports_touch = nl.model in TOUCH_MODELS
-    if supports_touch:
+    if supports_touch := nl.model in TOUCH_MODELS:
         device_registry = dr.async_get(hass)
         device_entry = device_registry.async_get_or_create(
             config_entry_id=entry.entry_id,
@@ -124,6 +126,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "device_info": device_info,
         "expose_panels": entry.options.get(CONF_EXPOSE_PANELS, DEFAULT_EXPOSE_PANELS),
     }
+    
+    # Also store key data by serial number for panel discovery
+    hass.data.setdefault(DOMAIN, {})[nl.serial_no] = hass.data[DOMAIN][entry.entry_id]
+    
+    # Also store key data by serial number for panel discovery
+    hass.data.setdefault(DOMAIN, {})[nl.serial_no] = hass.data[DOMAIN][entry.entry_id]
 
     # Determine which platforms to set up
     platforms_to_setup = ["button", "event"]  # Always set up these platforms

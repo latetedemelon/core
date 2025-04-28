@@ -16,8 +16,10 @@ from homeassistant.const import EntityCategory
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, TOUCH_MODELS
+from .coordinator import NanoleafPanelCoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -30,13 +32,14 @@ async def async_setup_entry(
     """Set up the Nanoleaf event entities."""
     data = hass.data[DOMAIN][entry.entry_id]
     nanoleaf: Nanoleaf = data["device"]
+    coordinator = data["coordinator"]
 
     # Only add gesture events for devices that support them
     if nanoleaf.model in TOUCH_MODELS:
-        async_add_entities([NanoleafGestureEventEntity(nanoleaf)])
+        async_add_entities([NanoleafGestureEventEntity(coordinator, nanoleaf)])
 
 
-class NanoleafGestureEventEntity(EventEntity):
+class NanoleafGestureEventEntity(CoordinatorEntity[NanoleafPanelCoordinator], EventEntity):
     """Representation of a gesture event entity."""
 
     _attr_has_entity_name = True
@@ -44,12 +47,13 @@ class NanoleafGestureEventEntity(EventEntity):
     _attr_entity_category = EntityCategory.DIAGNOSTIC
     _attr_device_class = EventDeviceClass.GESTURE
     _attr_event_types = ["swipe_up", "swipe_down", "swipe_left", "swipe_right"]
+    _attr_translation_key = "gesture"
 
-    def __init__(self, nanoleaf: Nanoleaf) -> None:
+    def __init__(self, coordinator: NanoleafPanelCoordinator, nanoleaf: Nanoleaf) -> None:
         """Initialize the gesture event entity."""
+        super().__init__(coordinator)
         self._nanoleaf = nanoleaf
         self._attr_unique_id = f"{nanoleaf.serial_no}_gesture"
-        # Device info is automatically set using the device registry info
 
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""

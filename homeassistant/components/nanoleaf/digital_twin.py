@@ -3,24 +3,55 @@ Adapted for Home Assistant from nanoleafapi's sync version.
 """
 from __future__ import annotations
 
-from typing import Dict, Tuple
+import logging
+from typing import Dict, Tuple, Set
 
 from homeassistant.exceptions import HomeAssistantError
+
+_LOGGER = logging.getLogger(__name__)
 
 class DigitalTwin:
     """Maintain a local (id -> RGB) shadow of the panel layout."""
 
     def __init__(self, nl): 
         self._nl = nl
-        self.colors: Dict[int, Tuple[int, int, int]] = {
-            p.id: (0, 0, 0) for p in nl.layout.panels if p.id
-        }
+        self._panel_ids: Set[int] = set()
+        self.colors: Dict[int, Tuple[int, int, int]] = {}
+        # Initial population will happen in refresh_layout
 
     # ---------------------------------------------------------------------
     @classmethod
     async def create(cls, nl):
         await nl.get_info()
-        return cls(nl)
+        instance = cls(nl)
+        await instance.refresh_layout()
+        return instance
+    
+    async def refresh_layout(self) -> bool:
+        """Refresh the panel layout and update color dictionary.
+        
+        Returns True if the panel layout changed (panels added/removed).
+        """
+        await self._nl.get_info()
+        # Extract panel IDs from the layout
+        new_panel_ids = {p.id for p in self._nl.layout.panels if p.id}
+        
+        if new_panel_ids == self._panel_ids:
+            return False  # No change
+            
+        # Update internal panel ID tracking
+        self._panel_ids = new_panel_ids
+        
+        # Add new panels with black color
+        for pid in new_panel_ids:
+            if pid not in self.colors:
+                self.colors[pid] = (0, 0, 0)
+                
+        # Remove panels that no longer exist
+        self.colors = {pid: rgb for pid, rgb in self.colors.items() if pid in new_panel_ids}
+        
+        _LOGGER.debug("Nanoleaf panel layout changed, now %d panels", len(self._panel_ids))
+        return True
 
     async def set_color(self, pid: int, rgb: Tuple[int, int, int]):
         if pid not in self.colors:
@@ -41,7 +72,10 @@ class DigitalTwin:
         return " ".join(map(str, [len(ids)] + rec))
 
     async def sync(self, transition_ms: int = 100):
-        """Push current shadow to the controller as a static scene."""
+        """Push current shadow to the controller as a static scene.
+        
+        Returns True if the panel layout changed (panels added/removed).
+        """
         ids_ordered = sorted(self.colors)
         anim = self._build_anim(ids_ordered, self.colors, transition_ms // 10)
         payload = {
@@ -54,6 +88,10 @@ class DigitalTwin:
         }
         try:
             await self._nl.write_effect(payload)
+            # Check if panel layout has changed (new panels added)
+            panel_count_before = len(self._panel_ids)
+            layout_changed = await self.refresh_layout()
+            return layout_changed
         except Exception as err:
             raise HomeAssistantError(f"Failed to write effect to Nanoleaf: {err}") from err
  
