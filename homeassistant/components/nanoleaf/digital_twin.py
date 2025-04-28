@@ -5,11 +5,10 @@ from __future__ import annotations
 
 from typing import Dict, Tuple
 
-class DigitalTwin:  # pylint: disable=too-few-public-methods
+class DigitalTwin:
     """Maintain a local (id -> RGB) shadow of the panel layout."""
 
-    def __init__(self, nl):  # nl: aionanoleaf.Nanoleaf
-        self._nl = nl
+    def __init__(self, nl): 
         self.colors: Dict[int, Tuple[int, int, int]] = {
             p.id: (0, 0, 0) for p in nl.layout.panels if p.id
         }
@@ -51,3 +50,4 @@ class DigitalTwin:  # pylint: disable=too-few-public-methods
             "loop": False,
         }
         await self._nl.write_effect(payload)
+ 

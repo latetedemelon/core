@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import logging
 
+from aionanoleaf import Nanoleaf  # local import to keep requirements optional
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
@@ -18,8 +20,6 @@ _LOGGER = logging.getLogger(__name__)
 PLATFORMS = ["light"]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
-    """Set up Nanoleaf integration from a config entry."""
-    from aionanoleaf import Nanoleaf  # local import to keep requirements optional
 
     nl = Nanoleaf(entry.data["host"])
     await nl.authorize(token=entry.data["token"])
