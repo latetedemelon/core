@@ -1,34 +1,44 @@
-"""Support for Nanoleaf buttons."""
+"""Button platform for Nanoleaf integration."""
+from __future__ import annotations
+
+import logging
+
+from aionanoleaf import Nanoleaf
 
 from homeassistant.components.button import ButtonDeviceClass, ButtonEntity
-from homeassistant.const import EntityCategory
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .coordinator import NanoleafConfigEntry, NanoleafCoordinator
-from .entity import NanoleafEntity
+from .const import DOMAIN
+
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: NanoleafConfigEntry,
-    async_add_entities: AddConfigEntryEntitiesCallback,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the Nanoleaf button."""
-    async_add_entities([NanoleafIdentifyButton(entry.runtime_data)])
+    """Set up Nanoleaf button based on a config entry."""
+    data = hass.data[DOMAIN][entry.entry_id]
+    nanoleaf = data["device"]
+
+    async_add_entities([NanoleafIdentifyButton(nanoleaf)])
 
 
-class NanoleafIdentifyButton(NanoleafEntity, ButtonEntity):
-    """Representation of a Nanoleaf identify button."""
+class NanoleafIdentifyButton(ButtonEntity):
+    """Defines a Nanoleaf identify button entity."""
 
-    _attr_entity_category = EntityCategory.CONFIG
+    _attr_has_entity_name = True
+    _attr_name = "Identify"
     _attr_device_class = ButtonDeviceClass.IDENTIFY
 
-    def __init__(self, coordinator: NanoleafCoordinator) -> None:
-        """Initialize the Nanoleaf button."""
-        super().__init__(coordinator)
-        self._attr_unique_id = f"{self._nanoleaf.serial_no}_identify"
+    def __init__(self, nanoleaf: Nanoleaf) -> None:
+        """Initialize the button entity."""
+        self._nanoleaf = nanoleaf
+        self._attr_unique_id = f"{nanoleaf.serial_no}_identify"
 
     async def async_press(self) -> None:
-        """Identify the Nanoleaf."""
+        """Identify the device."""
         await self._nanoleaf.identify()

@@ -21,7 +21,7 @@ from homeassistant.helpers.service_info.zeroconf import (
 )
 from homeassistant.util.json import JsonObjectType, JsonValueType, load_json_object
 
-from .const import DOMAIN
+from .const import CONF_EXPOSE_PANELS, DEFAULT_EXPOSE_PANELS, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -226,5 +226,8 @@ class NanoleafConfigFlow(ConfigFlow, domain=DOMAIN):
             data={
                 CONF_HOST: self.nanoleaf.host,
                 CONF_TOKEN: self.nanoleaf.auth_token,
+            },
+            options={
+                CONF_EXPOSE_PANELS: DEFAULT_EXPOSE_PANELS,
             },
         )

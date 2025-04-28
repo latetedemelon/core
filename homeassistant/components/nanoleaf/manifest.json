@@ -1,4 +1,3 @@
-"""Assumes https://github.com/milanmeu/aionanoleaf/pull/12 is accepted and version is bumped"""
 {
   "domain": "nanoleaf",
   "name": "Nanoleaf",
@@ -10,7 +9,8 @@
   },
   "iot_class": "local_push",
   "loggers": ["aionanoleaf"],
-  "requirements": ["aionanoleaf==0.3.0"],
+  "requirements": ["aionanoleaf==0.2.2"],
+  "version": "0.3.0-panel1",
   "ssdp": [
     {
       "st": "Nanoleaf_aurora:light"

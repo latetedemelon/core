@@ -5,10 +5,13 @@ from __future__ import annotations
 
 from typing import Dict, Tuple
 
+from homeassistant.exceptions import HomeAssistantError
+
 class DigitalTwin:
     """Maintain a local (id -> RGB) shadow of the panel layout."""
 
     def __init__(self, nl): 
+        self._nl = nl
         self.colors: Dict[int, Tuple[int, int, int]] = {
             p.id: (0, 0, 0) for p in nl.layout.panels if p.id
         }
@@ -21,7 +24,7 @@ class DigitalTwin:
 
     async def set_color(self, pid: int, rgb: Tuple[int, int, int]):
         if pid not in self.colors:
-            raise ValueError("Unknown panel id %s", pid)
+            raise ValueError(f"Unknown panel id {pid}")
         self.colors[pid] = rgb
 
     async def set_all(self, rgb: Tuple[int, int, int]):
@@ -30,7 +33,7 @@ class DigitalTwin:
 
     # ------------------------------------------------------------------ helpers
     @staticmethod
-    def _build_anim(ids, colours, transition: int) -> str:
+    def _build_anim(ids: list[int], colours: Dict[int, Tuple[int, int, int]], transition: int) -> str:
         rec = []
         for pid in ids:
             r, g, b = colours[pid]
@@ -49,5 +52,8 @@ class DigitalTwin:
             "palette": [],
             "loop": False,
         }
-        await self._nl.write_effect(payload)
+        try:
+            await self._nl.write_effect(payload)
+        except Exception as err:
+            raise HomeAssistantError(f"Failed to write effect to Nanoleaf: {err}") from err
  
