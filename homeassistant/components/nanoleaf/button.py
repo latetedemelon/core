@@ -42,6 +42,7 @@ class NanoleafIdentifyButton(CoordinatorEntity[NanoleafPanelCoordinator], Button
         super().__init__(coordinator)
         self._nanoleaf = nanoleaf
         self._attr_unique_id = f"{nanoleaf.serial_no}_identify"
+        self._attr_device_info = coordinator.device_info
 
     async def async_press(self) -> None:
         """Identify the device."""

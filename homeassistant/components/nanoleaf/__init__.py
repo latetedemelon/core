@@ -1,10 +1,4 @@
-"""Home Assistant Nanoleaf integration – extended     # Set up touch gesture events if supported
-    if supports_touch := nl.model in TOUCH_MODELS:
-        device_registry = dr.async_get(hass)
-        device_entry = device_registry.async_get_or_create(
-            config_entry_id=entry.entry_id,
-            identifiers={(DOMAIN, nl.serial_no)},
-        )e individual panels."""
+"""Home Assistant Nanoleaf integration – extended to expose individual panels."""
 from __future__ import annotations
 
 import asyncio

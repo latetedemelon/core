@@ -54,6 +54,7 @@ class NanoleafGestureEventEntity(CoordinatorEntity[NanoleafPanelCoordinator], Ev
         super().__init__(coordinator)
         self._nanoleaf = nanoleaf
         self._attr_unique_id = f"{nanoleaf.serial_no}_gesture"
+        self._attr_device_info = coordinator.device_info
 
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
