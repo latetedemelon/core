@@ -24,7 +24,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.exceptions import HomeAssistantError, ConfigEntryNotReady
 
-from .const import DOMAIN
+from .const import CONF_EXPOSE_PANELS, DEFAULT_EXPOSE_PANELS, DOMAIN
 from .digital_twin import DigitalTwin
 from .coordinator import NanoleafPanelCoordinator
 
@@ -227,32 +227,27 @@ async def async_setup_entry(hass, entry, async_add_entities):
     twin: DigitalTwin = data["twin"]
     coordinator: NanoleafPanelCoordinator = data["coordinator"]
     nanoleaf = data["device"]
+    expose_panels = data.get("expose_panels", DEFAULT_EXPOSE_PANELS)
 
     # Ensure coordinator had a chance to refresh data
     await coordinator.async_config_entry_first_refresh()
-
+    
     if coordinator.data is None:
         _LOGGER.error("Coordinator data not available during setup")
         raise ConfigEntryNotReady("Coordinator data not available")
-
-    # Add device info to the data dict for entity use
-    data["device_info"] = {
-        "identifiers": {(DOMAIN, nanoleaf.serial_no)},
-        "name": nanoleaf.name,
-        "manufacturer": "Nanoleaf",
-        "model": nanoleaf.model,
-        "sw_version": nanoleaf.firmware_version,
-    }
-
-    # Create panel lights for individual panels
-    panel_entities = [
-        PanelLight(coordinator, twin, pid, entry.entry_id)
-        for pid in coordinator.data
-        if pid != 0  # Filter out PSU
-    ]
-
-    # Create main Nanoleaf light entity
-    main_light = NanoleafLight(hass, entry, nanoleaf)
-
+    
+    # Create entities list starting with the main light
+    entities = [NanoleafLight(hass, entry, nanoleaf)]
+    
+    # Add individual panel lights if enabled in options
+    if expose_panels:
+        _LOGGER.debug("Setting up %d individual panel lights", len(coordinator.data))
+        panel_entities = [
+            PanelLight(coordinator, twin, pid, entry.entry_id)
+            for pid in coordinator.data
+            if pid != 0  # Filter out PSU
+        ]
+        entities.extend(panel_entities)
+    
     # Add all entities
-    async_add_entities([main_light] + panel_entities)
+    async_add_entities(entities)
