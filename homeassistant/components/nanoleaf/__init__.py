@@ -1,4 +1,4 @@
-"""Home Assistant Nanoleaf integration – extended to expose individual panels."""
+"""Integration for Nanoleaf extended to expose individual panels."""
 from __future__ import annotations
 
 import asyncio

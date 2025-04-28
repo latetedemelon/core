@@ -1,4 +1,4 @@
-"""Nanoleaf lights – both whole-fixture and per-panel entities."""
+"""Nanoleaf lights, both whole-fixture and per-panel entities."""
 from __future__ import annotations
 
 import logging
@@ -17,12 +17,12 @@ from homeassistant.components.light import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.util import color as color_util
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.exceptions import HomeAssistantError, ConfigEntryNotReady
+from homeassistant.util import color as color_util
 
 from .const import CONF_EXPOSE_PANELS, DEFAULT_EXPOSE_PANELS, DOMAIN
 from .digital_twin import DigitalTwin
